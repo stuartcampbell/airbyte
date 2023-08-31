@@ -10,6 +10,7 @@ import com.mysql.cj.MysqlType;
 import io.airbyte.commons.stream.AirbyteStreamUtils;
 import io.airbyte.commons.util.AutoCloseableIterator;
 import io.airbyte.commons.util.AutoCloseableIterators;
+import io.airbyte.db.JdbcCompatibleSourceOperations;
 import io.airbyte.db.jdbc.JdbcDatabase;
 import io.airbyte.integrations.source.mysql.MySqlQueryUtils.TableSizeInfo;
 import io.airbyte.integrations.source.mysql.internal.models.PrimaryKeyLoadStatus;
@@ -43,7 +44,7 @@ public class MySqlInitialLoadHandler {
   private static final long RECORD_LOGGING_SAMPLE_RATE = 1_000_000;
   private final JsonNode config;
   private final JdbcDatabase database;
-  private final MySqlInitialLoadSourceOperations sourceOperations;
+  private final JdbcCompatibleSourceOperations sourceOperations;
   private final String quoteString;
   private final MySqlInitialLoadStateManager initialLoadStateManager;
   private final Function<AirbyteStreamNameNamespacePair, JsonNode> streamStateForIncrementalRunSupplier;
@@ -54,7 +55,7 @@ public class MySqlInitialLoadHandler {
 
   public MySqlInitialLoadHandler(final JsonNode config,
                                  final JdbcDatabase database,
-                                 final MySqlInitialLoadSourceOperations sourceOperations,
+                                 final JdbcCompatibleSourceOperations sourceOperations,
                                  final String quoteString,
                                  final MySqlInitialLoadStateManager initialLoadStateManager,
                                  final Function<AirbyteStreamNameNamespacePair, JsonNode> streamStateForIncrementalRunSupplier,
