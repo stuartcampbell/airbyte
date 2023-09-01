@@ -58,8 +58,8 @@ public class MySqlInitialLoadStreamStateManager implements MySqlInitialLoadState
 
     return new AirbyteStateMessage()
         .withType(AirbyteStateType.STREAM)
-        .withData(streamStateForIncrementalRun)
-        .withStream(getAirbyteStreamState(pair, streamStateForIncrementalRun));
+        .withData(Jsons.jsonNode(getFinalState(pair)))
+        .withStream(getAirbyteStreamState(pair, (streamStateForIncrementalRun)));
   }
 
   @Override
@@ -83,9 +83,10 @@ public class MySqlInitialLoadStreamStateManager implements MySqlInitialLoadState
 
 
   private AirbyteStreamState getAirbyteStreamState(final io.airbyte.protocol.models.AirbyteStreamNameNamespacePair pair, final JsonNode stateData) {
-    assert Objects.nonNull(pair);
-    assert Objects.nonNull(pair.getName());
-    assert Objects.nonNull(pair.getNamespace());
+    LOGGER.info("STATE DATA FOR {}: {}", pair.getNamespace().concat("_").concat(pair.getName()), stateData);
+//    assert Objects.nonNull(pair);
+//    assert Objects.nonNull(pair.getName());
+//    assert Objects.nonNull(pair.getNamespace());
 
     return new AirbyteStreamState()
         .withStreamDescriptor(

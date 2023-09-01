@@ -5,6 +5,7 @@
 package io.airbyte.integrations.source.mysql;
 
 import static io.airbyte.db.jdbc.JdbcUtils.EQUALS;
+import static io.airbyte.db.jdbc.JdbcUtils.getDefaultSourceOperations;
 import static io.airbyte.integrations.debezium.AirbyteDebeziumHandler.shouldUseCDC;
 import static io.airbyte.integrations.debezium.internals.DebeziumEventUtils.CDC_DELETED_AT;
 import static io.airbyte.integrations.debezium.internals.DebeziumEventUtils.CDC_UPDATED_AT;
@@ -65,6 +66,7 @@ import io.airbyte.integrations.source.relationaldb.state.StateGeneratorUtils;
 import io.airbyte.integrations.source.relationaldb.state.StateManager;
 import io.airbyte.integrations.source.relationaldb.state.StateManagerFactory;
 import io.airbyte.integrations.util.HostPortResolver;
+import io.airbyte.protocol.models.AirbyteStreamNameNamespacePair;
 import io.airbyte.protocol.models.CommonField;
 import io.airbyte.protocol.models.v0.AirbyteCatalog;
 import io.airbyte.protocol.models.v0.AirbyteMessage;
@@ -393,12 +395,11 @@ public class MySqlSource extends AbstractJdbcSource<MysqlType> implements Source
           getCursorBasedSyncStatusForStreams(database, initialLoadStreams.streamsForInitialLoad(), cursorBasedStateManager,
               getQuoteString());
 
-
       // Determine the streams that need to be loaded via primary key sync.
       final MySqlInitialLoadHandler initialLoadHandler =
-          new MySqlInitialLoadHandler(sourceConfig, database, sourceOperations, quoteString, mySqlInitialLoadStreamStateManager,
-              streamNameNamespacePair -> Jsons.jsonNode(cursorBasedStatusMap.get(streamNameNamespacePair)),
-              getTableSizeInfoForStreams(database, catalog.getStreams(), quoteString));
+          new MySqlInitialLoadHandler(sourceConfig, database, getDefaultSourceOperations(), getQuoteString(), mySqlInitialLoadStreamStateManager,
+              namespacePair -> Jsons.jsonNode(cursorBasedStatusMap.get(namespacePair)),
+              getTableSizeInfoForStreams(database, catalog.getStreams(), getQuoteString()));
       final List<AutoCloseableIterator<AirbyteMessage>> initialLoadIterator = new ArrayList<>(initialLoadHandler.getIncrementalIterators(
           new ConfiguredAirbyteCatalog().withStreams(initialLoadStreams.streamsForInitialLoad()),
           tableNameToTable,
@@ -407,23 +408,21 @@ public class MySqlSource extends AbstractJdbcSource<MysqlType> implements Source
       // Build Cursor based iterator
       final List<ConfiguredAirbyteStream> cursorBasedStreams = new ArrayList<>();
       final Set<String> primaryKeyStreamNames =
-          cursorBasedStatusMap.keySet().stream().map(namespacePair -> namespacePair.getName()).collect(Collectors.toSet());
+          cursorBasedStatusMap.keySet().stream().map(AirbyteStreamNameNamespacePair::getName).collect(Collectors.toSet());
       catalog.getStreams().forEach(stream -> {
         if (!primaryKeyStreamNames.contains(stream.getStream().getName())) {
           cursorBasedStreams.add(stream);
         }
       });
 
+//      final List<AutoCloseableIterator<AirbyteMessage>> cursorBasedIterators =
+//          new ArrayList<>(super.getIncrementalIterators(database,
+//              new ConfiguredAirbyteCatalog().withStreams(
+//                  cursorBasedStreams),
+//              tableNameToTable,
+//              cursorBasedStateManager, emittedAt));
 
-
-      final List<AutoCloseableIterator<AirbyteMessage>> cursorBasedIterators =
-          new ArrayList<>(super.getIncrementalIterators(database,
-              new ConfiguredAirbyteCatalog().withStreams(
-                  cursorBasedStreams),
-              tableNameToTable,
-              cursorBasedStateManager, emittedAt));
-
-      return Stream.of(initialLoadIterator, cursorBasedIterators).flatMap(Collection::stream).collect(Collectors.toList());
+      return Stream.of(initialLoadIterator).flatMap(Collection::stream).collect(Collectors.toList());
     }
   }
 
